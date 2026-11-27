@@ -70,7 +70,8 @@ async def test_a_new_client_gets_cashback_and_one_whatsapp(till, sent):
     again = (await _earn(till)).json()                                      # the till retries: nothing twice
     assert (again["earned"], again["balance"], again["told"]) == (300, 300, False)
     assert len(sent) == 1 and sent[0][0] == "77015554433"
-    assert "начислено 300 бонусов за заказ № 1001 (3% от суммы)" in sent[0][1] and "СТОП" in sent[0][1]
+    assert sent[0][1] == ("Спасибо, что выбрали Дам Алем! 🧡\n\n+300 бонусов за заказ № 1001\nНа счёте: 300 бонусов (1 бонус = 1 ₸)\n\n"
+                          "Оплачивайте ими до 20% следующего заказа — просто назовите свой номер.\n\nОтписаться — ответьте СТОП")
     state = (await till.post("/api/v1/integrations/pos/bonus", json={"phone": "+77015554433"})).json()
     assert state["known"] and state["balance"] == 300 and state["expires"][0]["amount"] == 300
     async with till.store() as db:
@@ -115,7 +116,7 @@ async def test_the_daily_limit_holds(till):
 
 
 async def _code(sent):
-    return re.search(r"— (\d{4})\.", sent[-1][1]).group(1)
+    return re.search(r"— (\d{4})\n", sent[-1][1]).group(1)
 
 
 async def test_paying_with_bonuses_needs_the_clients_code(till, sent):
@@ -125,7 +126,7 @@ async def test_paying_with_bonuses_needs_the_clients_code(till, sent):
     assert too_much.status_code == 422 and "не более 800" in too_much.text   # 20% of 4 000
     r = (await till.post(start, json={"phone": PHONE, "amount": 800, "food": 4000, "pos_ref": "s1"})).json()
     code = await _code(sent)
-    assert "Будет списано 800 бонусов" in sent[-1][1]
+    assert "Спишется 800 бонусов. Назовите код кассиру." in sent[-1][1]
     confirm = "/api/v1/integrations/pos/spend/confirm"
     wrong = await till.post(confirm, json={"spend_id": r["spend_id"], "code": "0000" if code != "0000" else "1111", "pos_ref": "s1", "number": 1002})
     assert wrong.status_code == 422 and "осталось попыток: 4" in wrong.text
@@ -133,7 +134,7 @@ async def test_paying_with_bonuses_needs_the_clients_code(till, sent):
     assert other.status_code == 404                                         # a code works only for its own order
     ok = (await till.post(confirm, json={"spend_id": r["spend_id"], "code": code, "pos_ref": "s1", "number": 1002})).json()
     assert ok == {"spent": 800, "balance": 2200}
-    assert "оплачено бонусами 800 ₸ в заказе № 1002. Осталось 2200" in sent[-1][1]
+    assert sent[-1][1] == "Дам Алем: оплачено бонусами 800 ₸ (заказ № 1002).\nОсталось: 2200 бонусов. Спасибо! 🧡"
     again = (await till.post(confirm, json={"spend_id": r["spend_id"], "code": code, "pos_ref": "s1", "number": 1002})).json()
     assert again == {"spent": 800, "balance": 2200}                          # a repeated tap takes nothing more
     second = await till.post(start, json={"phone": PHONE, "amount": 100, "food": 4000, "pos_ref": "s1"})
@@ -219,3 +220,17 @@ async def test_stop_in_whatsapp_is_answered_by_the_number_not_the_ai(monkeypatch
     event = {"event": "message", "payload": {"id": "m-stop-1", "from": "77015554433@c.us", "body": "СТОП"}}
     out = await support_bot.handle_event(event, client=None)
     assert out.action == "stop" and said == [("77015554433@c.us", "ok-stop")] and stopped == [("+77015554433", True)]
+
+
+def test_the_words_agree_with_the_numbers():
+    assert [pos_bonus.bonuses(n) for n in (1, 2, 5, 11, 14, 21, 22, 111, 151, 152, 155)] == [
+        "1 бонус", "2 бонуса", "5 бонусов", "11 бонусов", "14 бонусов", "21 бонус", "22 бонуса", "111 бонусов",
+        "151 бонус", "152 бонуса", "155 бонусов"]
+
+
+def test_the_burn_date_only_when_it_is_close():
+    base = {"earned": 20, "balance": 151, "max_percent": 20.0}
+    far = pos_bonus.earned_text(1000, {**base, "soonest": {"amount": 131, "at": "22.01", "days": 55}})
+    near = pos_bonus.earned_text(1000, {**base, "soonest": {"amount": 131, "at": "05.12", "days": 7}})
+    assert "Сгорят" not in far and "+20 бонусов за заказ № 1000\nНа счёте: 151 бонус (1 бонус = 1 ₸)" in far
+    assert "Сгорят 05.12: 131 бонус\n" in near

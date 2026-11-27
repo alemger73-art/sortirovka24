@@ -36,7 +36,8 @@ CODE_TTL = 10 * 60          # seconds a spend code stays valid
 CODE_TRIES = 5
 STOP_WORDS = {"стоп", "stop"}
 START_WORDS = {"старт", "start"}
-FOOTER = "\n\nНе хотите получать такие сообщения — ответьте СТОП."
+STOP_LINE = "Отписаться — ответьте СТОП"
+SOON_DAYS = 14   # the burn date is mentioned only when it is this close
 
 
 # ---------- small helpers ----------
@@ -172,19 +173,35 @@ async def earn(db, *, phone: str, name: str, pos_ref: str, number: int, eligible
     lot = await _soonest(db, account)
     return {"earned": tenge(earned), "balance": tenge(account.bonus_balance), "new": True, "rate": float(rules["cashback_rate"]),
             "max_percent": float(rules["max_spend_percent"]),
-            "soonest": {"amount": tenge(lot.remaining), "at": _date(lot.expires_at)} if lot else None}
+            "soonest": {"amount": tenge(lot.remaining), "at": _date(lot.expires_at),
+                        "days": (loyalty.aware(lot.expires_at) - loyalty.now()).days} if lot else None}
+
+
+def bonuses(n: int) -> str:
+    """151 бонус, 152 бонуса, 155 бонусов."""
+    tail = n % 100
+    word = "бонусов" if 11 <= tail <= 14 else {1: "бонус", 2: "бонуса", 3: "бонуса", 4: "бонуса"}.get(n % 10, "бонусов")
+    return f"{n} {word}"
 
 
 def earned_text(number: int, result: dict) -> str:
-    rate = f"{result['rate']:g}"
-    line = f"Дам Алем: вам начислено {result['earned']} бонусов за заказ № {number} ({rate}% от суммы).\nНа счёте {result['balance']} бонусов"
+    lines = ["Спасибо, что выбрали Дам Алем! 🧡", "",
+             f"+{bonuses(result['earned'])} за заказ № {number}",
+             f"На счёте: {bonuses(result['balance'])} (1 бонус = 1 ₸)"]
     soon = result.get("soonest")
-    if soon and soon["amount"] and soon["amount"] < result["balance"]:
-        line += f", из них {soon['amount']} сгорят {soon['at']}"
-    elif soon:
-        line += f", сгорят {soon['at']}"
-    return (line + f".\nИми можно оплатить до {result['max_percent']:g}% следующего заказа — назовите номер телефона оператору "
-            "или закажите на sortirovka24.kz." + FOOTER)
+    if soon and soon.get("days", 99) <= SOON_DAYS:
+        lines.append(f"Сгорят {soon['at']}: {bonuses(soon['amount'])}")
+    lines += ["", f"Оплачивайте ими до {result['max_percent']:g}% следующего заказа — просто назовите свой номер.", "", STOP_LINE]
+    return "\n".join(lines)
+
+
+def code_text(code: str, amount: int) -> str:
+    return (f"Дам Алем: код для оплаты бонусами — {code}\nСпишется {bonuses(amount)}. Назовите код кассиру.\n\n"
+            "Если вы сейчас ничего не оплачиваете — никому не говорите этот код.")
+
+
+def spent_text(spent: int, number: int, balance: int) -> str:
+    return f"Дам Алем: оплачено бонусами {spent} ₸ (заказ № {number}).\nОсталось: {bonuses(balance)}. Спасибо! 🧡"
 
 
 async def tell_earned(db, phone: str, number: int, result: dict) -> bool:
@@ -216,8 +233,7 @@ async def start_spend(db, *, phone: str, amount: int, food: int, pos_ref: str) -
                      {"id": spend_id, "phone": _digits(phone), "amount": amount, "food": food, "ref": pos_ref,
                       "hash": _hash(code), "exp": int(time.time()) + CODE_TTL})
     await db.commit()
-    sent = await send(phone, f"Дам Алем: код для оплаты бонусами — {code}.\nБудет списано {amount} бонусов. Назовите код кассиру.\n"
-                             "Если вы ничего не оплачиваете — никому не называйте этот код.")
+    sent = await send(phone, code_text(code, amount))
     if not sent:
         raise HTTPException(503, "WhatsApp не доставил код клиенту. Попробуйте ещё раз через минуту")
     return {"spend_id": spend_id, "amount": amount, "valid_minutes": CODE_TTL // 60}

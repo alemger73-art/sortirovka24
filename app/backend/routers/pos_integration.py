@@ -83,8 +83,7 @@ async def spend_confirm(body: SpendConfirm, db: AsyncSession = Depends(get_db)):
     result = await pos_bonus.confirm_spend(db, spend_id=body.spend_id, code=body.code, pos_ref=body.pos_ref, number=body.number)
     await db.commit()
     if result.pop("new", False) and not await pos_bonus.opted_out(db, result["phone"]):
-        await pos_bonus.send(result["phone"], f"Дам Алем: оплачено бонусами {result['spent']} ₸ в заказе № {body.number}. "
-                                              f"Осталось {result['balance']} бонусов.")
+        await pos_bonus.send(result["phone"], pos_bonus.spent_text(result["spent"], body.number, result["balance"]))
     result.pop("phone", None)
     await db.commit()
     return result
