@@ -20,10 +20,10 @@ www.sortirovka24.kz, sortirovka24.kz {
 			header_up X-Forwarded-For {client_ip}
 		}
 	}
-	# The courier Android app (Dam Alem) opens full screen only if the site vouches for its signing key
+	# The courier and owner Android apps (Dam Alem) open full screen only if the site vouches for its signing key
 	handle /.well-known/assetlinks.json {
 		header Content-Type application/json
-		respond `[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "kz.sortirovka24.damalem.courier", "sha256_cert_fingerprints": ["31:19:2E:97:0A:A9:BB:92:06:53:91:43:F5:2A:96:73:26:A1:B7:55:C5:C3:D3:27:93:A3:28:60:51:1C:EB:BD"] } }]` 200
+		respond `[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "kz.sortirovka24.damalem.courier", "sha256_cert_fingerprints": ["31:19:2E:97:0A:A9:BB:92:06:53:91:43:F5:2A:96:73:26:A1:B7:55:C5:C3:D3:27:93:A3:28:60:51:1C:EB:BD"] } }, { "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "kz.sortirovka24.damalem.owner", "sha256_cert_fingerprints": ["10:F6:A5:E0:61:B1:AA:97:C8:70:F1:CD:C6:49:47:B3:C4:DD:07:CA:0E:85:B3:C1:E2:50:14:DB:21:49:2C:B0"] } }]` 200
 	}
 	encode zstd gzip
 	request_body {
