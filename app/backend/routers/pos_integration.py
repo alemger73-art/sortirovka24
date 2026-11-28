@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from services import pos_bonus
+from services import pos_bonus, pos_orders
 
 router = APIRouter(prefix="/api/v1/integrations/pos", tags=["pos-integration"])
 
@@ -94,3 +94,39 @@ async def restore(body: RestoreIn, db: AsyncSession = Depends(get_db)):
     result = await pos_bonus.restore(db, pos_ref=body.pos_ref, number=body.number)
     await db.commit()
     return result
+
+
+class RevokeIn(BaseModel):
+    pos_ref: str = Ref
+    number: int = Field(ge=1)
+    refunded: int = Field(ge=0, le=10_000_000)   # money returned for this order so far, in total
+    total: int = Field(ge=0, le=10_000_000)      # money the order cost
+
+
+@router.post("/revoke", dependencies=[Depends(_cashier)])
+async def revoke(body: RevokeIn, db: AsyncSession = Depends(get_db)):
+    result = await pos_bonus.revoke(db, pos_ref=body.pos_ref, number=body.number, refunded=body.refunded, total=body.total)
+    await db.commit()
+    return result
+
+
+# ---------- site orders at the till ----------
+
+class SitePull(BaseModel):
+    after_id: int = Field(ge=0)                                  # the last site order the till already has
+    open_ids: list[int] = Field(default_factory=list, max_length=500)   # site orders the till still works on
+
+
+class SiteStatus(BaseModel):
+    status: str = Field(pattern="^(cooking|ready|on_way|done|cancelled)$")
+    reason: str | None = Field(default=None, max_length=500)
+
+
+@router.post("/site-orders/pull", dependencies=[Depends(_cashier)])
+async def site_orders(body: SitePull, db: AsyncSession = Depends(get_db)):
+    return await pos_orders.pull(db, body.after_id, body.open_ids)
+
+
+@router.post("/site-orders/{order_id}/status", dependencies=[Depends(_cashier)])
+async def site_order_status(order_id: int, body: SiteStatus, db: AsyncSession = Depends(get_db)):
+    return await pos_orders.push(db, order_id, body.status, body.reason)

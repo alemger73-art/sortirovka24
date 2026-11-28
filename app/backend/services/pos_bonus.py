@@ -292,3 +292,19 @@ async def restore(db, *, pos_ref: str, number: int) -> dict:
     await loyalty.expire(db, account)
     await loyalty.notify(db, account.id, f"loyalty:{key}", f"{reason}. Баланс: {account.bonus_balance:g}.")
     return {"restored": -tenge(original.points), "balance": tenge(account.bonus_balance)}
+
+
+async def revoke(db, *, pos_ref: str, number: int, refunded: int, total: int) -> dict:
+    """The till returned money for this order: the matching share of its cashback goes back (all of it on a full refund)."""
+    original = await db.scalar(select(Bonus).where(Bonus.idempotency_key == f"pos-earn:{pos_ref}"))
+    if original is None or total <= 0:
+        return {"revoked": 0}
+    await loyalty.policy(db, lock=True)
+    ratio = min(Decimal(1), Decimal(refunded) / Decimal(total))
+    target = (loyalty.amount(original.points) * ratio).quantize(Decimal(1), rounding=ROUND_HALF_UP)
+    await loyalty.claw_back(db, original, target, f"Отмена кешбэка: возврат по заказу в кафе № {number}",
+                            details={"pos_ref": pos_ref, "refunded": refunded})
+    taken = -sum((loyalty.amount(e.points) for e in (await db.scalars(select(Bonus).where(
+        Bonus.kind == "REVERSAL", Bonus.idempotency_key.like(f"clawback:{original.id}:%")))).all()), Decimal(0))
+    account = await db.get(BonusMember, original.account_id)
+    return {"revoked": tenge(taken), "balance": tenge(account.bonus_balance), "debt": tenge(account.bonus_debt)}

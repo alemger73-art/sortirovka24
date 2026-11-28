@@ -234,3 +234,29 @@ def test_the_burn_date_only_when_it_is_close():
     near = pos_bonus.earned_text(1000, {**base, "soonest": {"amount": 131, "at": "05.12", "days": 7}})
     assert "Сгорят" not in far and "+20 бонусов за заказ № 1000\nНа счёте: 151 бонус (1 бонус = 1 ₸)" in far
     assert "Сгорят 05.12: 131 бонус\n" in near
+
+
+async def test_money_back_takes_the_cashback_back_once(till):
+    await _earn(till, eligible=10000)                                            # 300 bonuses
+    revoke = "/api/v1/integrations/pos/revoke"
+    half = (await till.post(revoke, json={"pos_ref": "r1", "number": 1001, "refunded": 5000, "total": 10000})).json()
+    assert half == {"revoked": 150, "balance": 150, "debt": 0}
+    again = (await till.post(revoke, json={"pos_ref": "r1", "number": 1001, "refunded": 5000, "total": 10000})).json()
+    assert again == {"revoked": 150, "balance": 150, "debt": 0}                  # repeated: nothing more
+    full = (await till.post(revoke, json={"pos_ref": "r1", "number": 1001, "refunded": 10000, "total": 10000})).json()
+    assert full == {"revoked": 300, "balance": 0, "debt": 0}
+    assert (await till.post(revoke, json={"pos_ref": "none", "number": 1, "refunded": 1, "total": 1})).json() == {"revoked": 0}
+    async with till.store() as db:
+        account = await db.scalar(select(BonusMember))
+        lots = await db.scalar(text("SELECT SUM(remaining) FROM bonus_lots WHERE account_id = :a"), {"a": account.id})
+        assert Decimal(str(lots)) == account.bonus_balance == 0
+
+
+async def test_spent_cashback_is_taken_from_the_balance(till, sent):
+    await _earn(till, eligible=10000)                                            # 300
+    await _earn(till, "r2", eligible=10000)                                      # +300 = 600
+    r = (await till.post("/api/v1/integrations/pos/spend/start", json={"phone": PHONE, "amount": 500, "food": 5000, "pos_ref": "s1"})).json()
+    await till.post("/api/v1/integrations/pos/spend/confirm", json={"spend_id": r["spend_id"], "code": await _code(sent), "pos_ref": "s1", "number": 2})
+    full = (await till.post("/api/v1/integrations/pos/revoke", json={"pos_ref": "r1", "number": 1001, "refunded": 10000, "total": 10000})).json()
+    assert (full["revoked"], full["balance"], full["debt"]) == (300, 0, 200)     # as on the site's own refunds: the rest is a debt
+    assert (await _earn(till, "r3", eligible=10000)).json()["balance"] == 100    # the next cashback pays the debt first

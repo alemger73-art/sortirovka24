@@ -484,36 +484,45 @@ async def refund(db, order, cumulative_refund, actor=None):
     entries = (await db.scalars(select(Bonus).where(Bonus.order_id == order.id, Bonus.kind.in_(('EARN', 'WELCOME', 'REFERRAL'))))).all()
     for original in entries:
         target = (amount(original.points)*ratio).quantize(Decimal('1'), rounding=ROUND_HALF_UP) if original.kind == 'EARN' else (amount(original.points) if ratio == 1 else ZERO)
-        previous = (await db.scalars(select(Bonus).where(Bonus.kind == 'REVERSAL', Bonus.idempotency_key.like(f'clawback:{original.id}:%')))).all()
-        already = sum((amount((e.details or {}).get('nominal_reversed', -e.points)) for e in previous), ZERO)
-        nominal = max(ZERO, target-already)
-        if nominal:
-            user = await account(db, original.account_id, internal=True, business_id=business_id)
-            await expire(db, user)
-            lot = await db.scalar(select(BonusLot).where(BonusLot.entry_id == original.id))
-            expired = ZERO
-            if lot:
-                expired_entry = await db.scalar(select(Bonus).where(Bonus.idempotency_key == f'expire:{lot.id}'))
-                expired = -amount(expired_entry.points) if expired_entry else ZERO
-            # Expired credits already reduced liability; a refund must not debit
-            # them a second time. Track nominal reversal even when delta is zero.
-            previous_recovered = -sum((amount(e.points) for e in previous), ZERO)
-            delta = max(ZERO, min(target, amount(original.points)-expired)-previous_recovered)
-            entry = await post(db, user, 'REVERSAL', -delta, f'clawback:{original.id}:{target}', f'Отмена начисления при возврате №{order.id}',
-                order_id=order.id, actor=actor, details={'reversal_of': original.id, 'refund_total': str(cumulative), 'nominal_reversed': str(nominal)}, clawback=True)
-            remaining = min(delta, amount(entry.balance_before))
-            if lot and lot.remaining and remaining:
-                take = min(amount(lot.remaining), remaining)
-                lot.remaining = amount(lot.remaining)-take
-                db.add(BonusAllocation(debit_id=entry.id, lot_id=lot.id, amount=take))
-                remaining -= take
-                await db.flush()
-            if remaining:
-                await consume(db, user, entry, remaining)
+        await claw_back(db, original, target, f'Отмена начисления при возврате №{order.id}', order_id=order.id, actor=actor,
+                        details={'refund_total': str(cumulative)}, business_id=business_id)
     order.loyalty_snapshot = {**snap, 'refund_amount': str(cumulative)}
     if ratio == 1 and order.customer_id:
         await restore_spend(db, await account(db, order.customer_id, internal=True, business_id=business_id), order)
     await db.flush()
+
+
+async def claw_back(db, original, target, reason, *, order_id=None, actor=None, details=None, business_id=DAM):
+    """Takes back up to `target` of an earning (cumulative over calls): what already expired is not taken twice,
+    what the client already spent is taken from the balance (the account may go below zero, as on a refund)."""
+    previous = (await db.scalars(select(Bonus).where(Bonus.kind == 'REVERSAL', Bonus.idempotency_key.like(f'clawback:{original.id}:%')))).all()
+    already = sum((amount((e.details or {}).get('nominal_reversed', -e.points)) for e in previous), ZERO)
+    nominal = max(ZERO, target-already)
+    if not nominal:
+        return None
+    user = await account(db, original.account_id, internal=True, business_id=business_id)
+    await expire(db, user)
+    lot = await db.scalar(select(BonusLot).where(BonusLot.entry_id == original.id))
+    expired = ZERO
+    if lot:
+        expired_entry = await db.scalar(select(Bonus).where(Bonus.idempotency_key == f'expire:{lot.id}'))
+        expired = -amount(expired_entry.points) if expired_entry else ZERO
+    # Expired credits already reduced liability; a refund must not debit
+    # them a second time. Track nominal reversal even when delta is zero.
+    previous_recovered = -sum((amount(e.points) for e in previous), ZERO)
+    delta = max(ZERO, min(target, amount(original.points)-expired)-previous_recovered)
+    entry = await post(db, user, 'REVERSAL', -delta, f'clawback:{original.id}:{target}', reason, order_id=order_id, actor=actor,
+                       details={'reversal_of': original.id, 'nominal_reversed': str(nominal), **(details or {})}, clawback=True)
+    remaining = min(delta, amount(entry.balance_before))
+    if lot and lot.remaining and remaining:
+        take = min(amount(lot.remaining), remaining)
+        lot.remaining = amount(lot.remaining)-take
+        db.add(BonusAllocation(debit_id=entry.id, lot_id=lot.id, amount=take))
+        remaining -= take
+        await db.flush()
+    if remaining:
+        await consume(db, user, entry, remaining)
+    return entry
 
 
 async def adjust(db, user_id, delta, reason, key, actor, business_id=DAM):
